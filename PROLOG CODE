@@ -1,0 +1,136 @@
+% State representation: state(MLeft, CLeft, BoatSide, MRight, CRight)
+% ML: Number of missionaries on the left bank
+% CL: Number of cannibals on the left bank
+% BoatSide: 'left' or 'right', indicating the side where the boat is currently located
+% MR: Number of missionaries on the right bank
+% CR: Number of cannibals on the right bank
+% MLA: Number of missionaries on the left bank after the move
+% MRA: Number of missionaries on the right bank after the move
+% CLA: Number of cannibals on the left bank after the move
+% CRA: Number of cannibals on the right bank after the move
+% B: boat position (either left or right
+
+% State representation:
+% state(ML, CL, B, MR, CR)
+
+% Initial state
+start([3, 3, left, 0, 0]).
+% Goal state
+goal([0, 0, right, 3, 3]).
+
+% Valid states:
+% missionaries on both sides can be [0,1,2,3] depending on the situation
+% cannibals have the same options.
+% !!!IMPORTANT!!! The cannibals can't outnumber the missionaries on either side
+
+pos(ML, CL, MR, CR) :-
+    ML >= 0, 
+    CL >= 0,
+    MR >= 0,
+    CR >= 0,
+    (ML >= CL ; ML = 0),
+    (MR >= CR ; MR = 0).
+
+%---------------RULES-----------------
+% Possible transportations
+% All possible transportations, which will later be verified if that's possible or not, are:
+% 1. Two cannibals move from left to right or vice versa
+% 2. Two missionaries move from left to right or vice versa
+% 3. One missionary and one cannibal move from left to right or vice versa
+% 4. One missionary moves from move to right or vice versa
+% 5. One cannibal moves alone from left to right or vice versa
+
+% Case 1.1: two cannibals from left to right
+transport([ML, CL, left, MR, CR], [ML, CLA, right, MR, CRA]) :-
+    CLA is CL - 2, %remove 2 cannibals from the left side
+    CRA is CR + 2, %add 2 cannibals on the right side
+    % check if this is possible 
+    pos(ML, CLA, MR, CRA).
+
+% Case 1.2: two cannibals from right to left
+transport([ML, CL, right, MR, CR], [ML, CLA, left, MR, CRA]) :-
+    CRA is CR - 2, %remome 2 cannibals from the right side
+    CLA is CL + 2, %add 2 cannibals on the left side
+    % check if this is possible 
+    pos(ML, CLA, MR, CRA).
+
+% Case 2.1: two missionaries move from left to right
+transport([ML, CL, left, MR, CR], [MLA, CL, right, MRA, CR]) :-
+    MRA is MR + 2, %add 2 missionaries on the right side
+    MLA is ML - 2, %remove 2 missionaries on the left side
+    % check if this is possible:
+    pos(MLA, CL, MRA, CR).
+
+% Case 2.2: Two missionaries move from right to left
+transport([ML, CL, right, MR, CR], [MLA, CL, left, MRA, CR]) :-
+    MLA is ML + 2, % add 2 missionaries on the left side
+    MRA is MR - 2, % remove 2 missionaries on the right side
+    % check if this is possible:
+    pos(MLA, CL, MRA, CR).
+
+%Case 3.1: One missionary & one cannibal move from left to right
+transport([ML,CL,left,MR,CR], [MLA, CLA, right, MRA, CRA]) :-
+    MLA is ML - 1,
+    CLA is CL - 1,
+    MRA  is MR + 1,
+    CRA is CR + 1,
+    %check if this is possible:
+    pos(MLA,CLA,MRA,CRA).
+     
+%Case 3.2: One missionary & one cannibal move from right to left
+transport([ML,CL, right, MR, CR], [MLA, CLA, left, MRA, CRA]) :-
+    MLA is ML + 1, % add one missionary on the left side
+    CLA is CL + 1, % add 1 cannibal on the left side
+    MRA is MR - 1, % remove one missionary on the right side
+    CRA is CR -1, % remove one cannibal on the right side
+    %check if this is possible:
+    pos(MLA,CLA,MRA,CRA).
+
+%Case 4.1: One missionary moves from left to right (alone)
+transport([ML, CL, left, MR, CR], [MLA, CL, right, MRA, CR]) :-
+    MLA is ML - 1, % remove one missionary on the left side
+    MRA is MR + 1, % add one missionary on the right side
+    %check if this is possible:
+    pos(MLA,CL,MRA,CR).
+
+%Case 4.2: One missionary moves from right to left (alone)
+transport([ML, CL, right, MR, CR], [MLA, CL, left, MRA, CR]) :-
+    MLA is ML + 1, % add one missionary on the left side
+    MRA is MR - 1, % remove one missionary on the right side
+    %check if this is possible:
+    pos(MLA,CL,MRA,CR).
+
+%Case 5.1: One cannibal moves from left to right (alone)
+transport([ML, CL, left, MR, CR], [ML, CLA, right, MR, CR]) :-
+    CLA is CL - 1, % remove one cannibal on the left side
+    CRA is CR + 1, % add one cannibal on the right side
+    %check if this is possible:
+    pos(ML,CLA,MR,CRA).
+
+%Case 5.2: One cannibal moves from right to left (alone)
+transport([ML, CL, right, MR, CR], [ML, CLA, left, MR, CR]) :-
+    CLA is CL + 1, % add one cannibal on the left side
+    CRA is CR - 1, % remove one cannibal on the right side
+    %check if this is possible:
+    pos(ML,CLA,MR,CRA).
+
+
+% Solve the problem by the recursive function 'path'
+path([ML1,CL1,B1,MR1,CR1],[ML2,CL2,B2,MR2,CR2],Explored,MovesList) :- 
+   transport([ML1,CL1,B1,MR1,CR1],[ML3,CL3,B3,MR3,CR3]), 
+   not(member([ML3,CL3,B3,MR3,CR3],Explored)),
+   path([ML3,CL3,B3,MR3,CR3],[ML2,CL2,B2,MR2, CR2],[[ML3,CL3,B3,MR3,CR3]|Explored],[ [[ML3,CL3,B3,MR3,CR3],[ML1,CL1,B1,MR1,CR1]] | MovesList ]).
+
+% Solution found
+path([ML,CL,B,MR,CR],[ML,CL,B,MR,CR],_,MovesList):- 
+	output(MovesList).
+
+% Print the moves 
+output([]) :- nl. 
+output([[A,B]|MovesList]) :- 
+	output(MovesList), 
+   	write(B), write(' -> '), write(A), nl.
+
+% Find the solution for the missionaries and cannibals problem
+find :- 
+   path([3,3,left,0,0],[0,0,right,3,3],[[3,3,left,0,0]],_).
